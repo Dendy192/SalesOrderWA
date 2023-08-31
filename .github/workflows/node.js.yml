@@ -32,9 +32,9 @@ jobs:
     - name: SSH Remote Commands
       uses: appleboy/ssh-action@v1.0.0
       with:
-         passphrase: ${{secret.ALIBABA_SSH}}
-         host: ${{secret.ALIBABA_IP}}
-         username: ${{secret.ALIBABA_ID}}
+         passphrase: ${{secrets.ALIBABA_SSH}}
+         host: ${{secrets.ALIBABA_IP}}
+         username: ${{secrets.ALIBABA_ID}}
          port: 1421
          script:  |
            cd /opt/salesOrder
