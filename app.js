@@ -23,6 +23,8 @@ const formatterRp = new Intl.NumberFormat("id-ID", {
   currency: "IDR",
   
 });
+
+let asd ;
 const cart = { data: [] };
 const catalogid = [];
 const token = process.env.WHATSAPP_TOKEN;
