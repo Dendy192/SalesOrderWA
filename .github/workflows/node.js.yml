@@ -38,4 +38,4 @@ jobs:
          script:  |
            cd /opt/salesOrder
            git pull
-           node start
+           node app
