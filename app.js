@@ -30,6 +30,8 @@ const token = process.env.WHATSAPP_TOKEN;
 const sessions = {}; // Object to store session data
 const route = [];
 const apiUrl = process.env.API_URL;
+let result;
+
 const express = require("express"),
   body_parser = require("body-parser"),
   axios = require("axios").default,
