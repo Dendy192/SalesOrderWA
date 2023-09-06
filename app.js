@@ -21,10 +21,9 @@ function sendMessage(phone_number_id, data) {
 const formatterRp = new Intl.NumberFormat("id-ID", {
   style: "currency",
   currency: "IDR",
-  
 });
 
-let asd ;
+let asd;
 const cart = { data: [] };
 const catalogid = [];
 const token = process.env.WHATSAPP_TOKEN;
@@ -37,6 +36,24 @@ const express = require("express"),
   app = express().use(body_parser.json());
 
 app.listen(process.env.PORT || 1337, () => console.log("webhook is listening"));
+
+const fetchItems = async () => {
+  try {
+    const response = await axios.get(apiUrl + "items");
+    return response.data.data;
+  } catch (error) {
+    console.error(error);
+  }
+};
+const items = async () => {
+  try {
+    result = await fetchItems();
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+items();
 
 const session = {};
 function cartFunc(id, from) {
@@ -211,8 +228,9 @@ app.post("/webhook", sessionMiddleware(sessionTimeout), (req, res) => {
             .button_reply.id;
         items = msg_body;
       }
-      console.log(route.some((route) => route.wa === from &&
-          route.data === "orderItems"));
+      console.log(
+        route.some((route) => route.wa === from && route.data === "orderItems")
+      );
       if (items == "mulaiCheck") {
         console.log("masuk button");
         axios.get(apiUrl + "user?phone=" + from).then(async (response) => {
@@ -529,7 +547,7 @@ app.post("/webhook", sessionMiddleware(sessionTimeout), (req, res) => {
 
                   let m = route.findIndex((x) => x.wa === from);
                   route[m].data = "orderItems";
-                console.log(route);
+                  console.log(route);
 
                   let reply = JSON.stringify({
                     messaging_product: "whatsapp",
@@ -538,7 +556,7 @@ app.post("/webhook", sessionMiddleware(sessionTimeout), (req, res) => {
                       body: "----- Catalog Items -----\n" + arr.toString(),
                     },
                   });
-                   await sendMessage(phone_number_id, reply);
+                  await sendMessage(phone_number_id, reply);
                   let reply2 = JSON.stringify({
                     messaging_product: "whatsapp",
                     to: from,
@@ -546,14 +564,15 @@ app.post("/webhook", sessionMiddleware(sessionTimeout), (req, res) => {
                       body: "Silahkan kirim chat untuk memesan barang dengan format \n\n[nomer item]=[jumlah barang] \n\ncontoh : 10=25 **tanpa spasi** \n(anda memesan item nomer 10, dengan jumlah barang 25) \n\ncontoh : 10=25,15=20 **tanpa spasi** \n(anda memesan item nomer 10, dengan jumlah barang 25 dan item nomer 15, dengan jumlah barang 20)",
                     },
                   });
-                   sendMessage(phone_number_id, reply2);
+                  sendMessage(phone_number_id, reply2);
                 });
 
               break;
           }
         } else if (
-          route.some((route) => route.wa === from &&
-          route.data === "orderItems")
+          route.some(
+            (route) => route.wa === from && route.data === "orderItems"
+          )
         ) {
           console.log("---Order Items---");
           console.log("route : ", route);
@@ -575,12 +594,24 @@ app.post("/webhook", sessionMiddleware(sessionTimeout), (req, res) => {
                   let qtys = cart.data[o].qty + qty;
                   console.log("ini qtys " + qtys + "ini M " + o);
                   cart.data[o].qty = qtys;
+                  cart.data[o].total = cart.data[o].after_diskon * qtys;
                 } else {
+                  let harga;
+                  for (var i = 0; i < result.length; i++) {
+                    if (result[i].itemNo === catalogid[index]) {
+                      harga = result[i].itemHarga;
+                      break; // Keluar dari loop setelah harga ditemukan
+                    }
+                  }
                   cart.data.push({
                     wa: from,
                     item: catalogid[index].toString(),
                     index: index + 1,
                     qty: qty,
+                    harga: harga,
+                    diskon: 10, //hardcoded
+                    after_diskon: harga * 0.9,
+                    total: harga * 0.9 * qty,
                   });
                 }
               }
@@ -597,16 +628,52 @@ app.post("/webhook", sessionMiddleware(sessionTimeout), (req, res) => {
                 let qtys = cart.data[o].qty + qty;
                 console.log("ini qtys " + qtys + "ini M " + o);
                 cart.data[o].qty = qtys;
+                cart.data[o].total = cart.data[o].after_diskon * qtys;
               } else {
+                let harga;
+                for (var i = 0; i < result.length; i++) {
+                  if (result[i].itemNo === catalogid[index]) {
+                    harga = result[i].itemHarga;
+                    break; // Keluar dari loop setelah harga ditemukan
+                  }
+                }
                 cart.data.push({
                   wa: from,
                   item: catalogid[index].toString(),
                   index: index + 1,
                   qty: qty,
+                  harga: harga,
+                  diskon: 10, //hardcoded
+                  after_diskon: harga * 0.9,
+                  total: harga * 0.9 * qty,
                 });
               }
             }
           }
+          //total setelah diskon item
+          let totalCart = cart.data.reduce(function (
+            accumulator,
+            currentValue
+          ) {
+            return accumulator + currentValue.total;
+          },
+          0);
+
+          let diskonToko = 10; //hardcoded
+
+          //fungsi pembulatan desimal
+          function toFixed(number, decimals) {
+            const x = Math.pow(10, Number(decimals) + 2);
+            return (Number(number) + 1 / x).toFixed(decimals);
+          }
+
+          //total setelah diskon toko
+          let final = toFixed(totalCart * ((100 - diskonToko) / 100), 4);
+
+          console.log("diskon toko\n", diskonToko);
+          console.log("cart\n", cart.data);
+          console.log("total semua\n", totalCart);
+          console.log("total setelah diskon\n", final);
           cartFunc(phone_number_id, from);
         }
       }
